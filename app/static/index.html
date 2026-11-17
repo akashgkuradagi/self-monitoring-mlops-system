@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Self-Monitoring MLOps System: Intelligent Drift Detection, Monitoring, and Automated Recovery Web Dashboard">
+  <title>Self-Monitoring MLOps System | Dashboard</title>
+  <link rel="stylesheet" href="/static/dashboard.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- Top Navigation / Application Header -->
+  <header class="app-header" role="banner">
+    <div class="header-branding">
+      <div class="header-logo" aria-hidden="true">MLOps</div>
+      <div>
+        <h1 class="header-title">Self-Monitoring MLOps System</h1>
+        <p class="header-subtitle">Intelligent Drift Detection, Monitoring &amp; Automated Recovery Console</p>
+      </div>
+    </div>
+
+    <!-- Auth & Operational Status Bar -->
+    <div class="header-controls">
+      <div class="auth-bar" role="region" aria-label="Authentication & User Role">
+        <span class="auth-label">Active Role:</span>
+        <span id="current-role-badge" class="badge badge-role role-unauth" role="status" aria-live="polite">UNAUTHENTICATED</span>
+        <span id="current-user-label" class="user-label">Guest</span>
+
+        <!-- Quick Login Presets for Evaluator/Demonstration -->
+        <div class="quick-login-group" role="group" aria-label="Demo Role Presets">
+          <button type="button" id="btn-login-viewer" class="btn btn-xs btn-outline" title="Login as read-only Viewer">Viewer</button>
+          <button type="button" id="btn-login-engineer" class="btn btn-xs btn-outline" title="Login as ML Engineer (Validation, Decisions, Rollbacks)">ML Engineer</button>
+          <button type="button" id="btn-login-admin" class="btn btn-xs btn-outline" title="Login as Administrator (Full Admin & Audit Hash Verification)">Admin</button>
+          <button type="button" id="btn-logout" class="btn btn-xs btn-ghost" style="display: none;" title="Clear token and logout">Logout</button>
+        </div>
+      </div>
+
+      <!-- Manual JWT Token Input -->
+      <div class="token-input-group">
+        <label for="jwt-token-input" class="sr-only">JWT Bearer Token</label>
+        <input type="password" id="jwt-token-input" class="input-token" placeholder="Paste JWT Bearer Token..." aria-label="JWT Bearer Token" />
+        <button type="button" id="btn-set-token" class="btn btn-xs btn-primary">Set Token</button>
+      </div>
+
+      <!-- Telemetry Sync Controls -->
+      <div class="sync-controls">
+        <label class="toggle-label" for="auto-refresh-toggle">
+          <input type="checkbox" id="auto-refresh-toggle" checked />
+          <span>Auto-Sync (10s)</span>
+        </label>
+        <button type="button" id="btn-refresh-all" class="btn btn-sm btn-secondary" aria-label="Refresh telemetry data">Sync Now</button>
+        <span id="last-refreshed-time" class="text-muted" aria-live="polite">Last sync: --:--:--</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Section Navigation Tabs (1-Click Access fulfilling TC-17 & NFR-08) -->
+  <nav class="dashboard-nav" aria-label="Dashboard Section Navigation">
+    <div role="tablist" class="tab-list">
+      <button role="tab" id="tab-overview" class="tab-btn active" aria-controls="section-overview" aria-selected="true" tabindex="0">
+        1. System Overview
+      </button>
+      <button role="tab" id="tab-monitoring" class="tab-btn" aria-controls="section-monitoring" aria-selected="false" tabindex="-1">
+        2. Monitoring &amp; Drift
+      </button>
+      <button role="tab" id="tab-alerts" class="tab-btn" aria-controls="section-alerts" aria-selected="false" tabindex="-1">
+        3. Alerts Management
+      </button>
+      <button role="tab" id="tab-candidates" class="tab-btn" aria-controls="section-candidates" aria-selected="false" tabindex="-1">
+        4. Candidate Governance
+      </button>
+      <button role="tab" id="tab-rollback" class="tab-btn" aria-controls="section-rollback" aria-selected="false" tabindex="-1">
+        5. Canary &amp; Rollback
+      </button>
+      <button role="tab" id="tab-audit" class="tab-btn" aria-controls="section-audit" aria-selected="false" tabindex="-1">
+        6. Audit Trail
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content Area with Tab Panels -->
+  <main id="main-content" class="dashboard-main" tabindex="-1">
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 1: SYSTEM OVERVIEW                                           -->
+    <!-- ===================================================================== -->
+    <section id="section-overview" role="tabpanel" aria-labelledby="tab-overview" class="tab-panel active">
+      <div class="section-header">
+        <h2>System Overview &amp; Production Telemetry</h2>
+        <span class="section-desc">Real-time health, champion model version, throughput, and latency bounds.</span>
+      </div>
+
+      <!-- Quick KPI Metric Cards -->
+      <div class="grid grid-4" role="region" aria-label="Key Performance Indicators">
+        <div class="card kpi-card">
+          <div class="kpi-label">Service Health</div>
+          <div class="kpi-value">
+            <span id="overview-service-health" class="badge status-healthy" role="status">HEALTHY</span>
+          </div>
+          <div class="kpi-subtext">FastAPI core v<span id="overview-app-version">0.1.0</span></div>
+        </div>
+
+        <div class="card kpi-card">
+          <div class="kpi-label">Active Champion Model</div>
+          <div class="kpi-value" id="overview-champion-version">baseline-v1</div>
+          <div class="kpi-subtext">Fallback: <span id="overview-fallback-version" class="text-highlight">baseline-v1</span></div>
+        </div>
+
+        <div class="card kpi-card">
+          <div class="kpi-label">Canary Window State</div>
+          <div class="kpi-value">
+            <span id="overview-canary-status" class="badge status-inactive" role="status">INACTIVE</span>
+          </div>
+          <div class="kpi-subtext" id="overview-canary-timer">Observation window: 300s</div>
+        </div>
+
+        <div class="card kpi-card">
+          <div class="kpi-label">Hot-Reload Status</div>
+          <div class="kpi-value">
+            <span id="overview-hot-reload" class="badge status-healthy" role="status">READY</span>
+          </div>
+          <div class="kpi-subtext">Zero-downtime dynamic routing</div>
+        </div>
+      </div>
+
+      <div class="grid grid-3" style="margin-top: 1.5rem;" role="region" aria-label="Operational Telemetry">
+        <div class="card">
+          <div class="card-header">
+            <h3>Prediction Ingestion Volume</h3>
+          </div>
+          <div class="stat-highlight" id="overview-prediction-count">0</div>
+          <p class="card-hint">Total telemetry events ingested into SQLite and memory buffer without loss.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Prediction Error Rate</h3>
+          </div>
+          <div class="stat-highlight" id="overview-error-rate">0.00%</div>
+          <p class="card-hint">Rolling error percentage (SLA Threshold &le; 10.00% for canary guard).</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Rolling Latency (p95)</h3>
+          </div>
+          <div class="stat-highlight" id="overview-p95-latency">0.00 ms</div>
+          <p class="card-hint">95th percentile latency (SLA Threshold &le; 500.00 ms).</p>
+        </div>
+      </div>
+
+      <!-- System Status Banner -->
+      <div class="card banner-card" style="margin-top: 1.5rem;">
+        <div class="banner-content">
+          <div>
+            <h3>Current Operational Assessment</h3>
+            <p id="overview-operational-summary">Telemetry collector running. Background workers observing baseline model inferences.</p>
+          </div>
+          <div class="banner-badges">
+            <span id="overview-drift-badge" class="badge status-healthy" role="status">NO_DRIFT</span>
+            <span id="overview-alerts-badge" class="badge status-healthy" role="status">0 ACTIVE ALERTS</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 2: MONITORING & DRIFT                                        -->
+    <!-- ===================================================================== -->
+    <section id="section-monitoring" role="tabpanel" aria-labelledby="tab-monitoring" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <h2>Statistical Drift &amp; Anomaly Monitoring Engine</h2>
+          <span class="section-desc">Kolmogorov-Smirnov two-sample testing, Population Stability Index, and ML/DL monitors.</span>
+        </div>
+        <div>
+          <button type="button" id="btn-evaluate-drift" class="btn btn-primary">Run Drift Evaluation</button>
+        </div>
+      </div>
+
+      <!-- Drift Status Banner -->
+      <div class="card banner-card">
+        <div class="banner-content">
+          <div>
+            <h3>Overall Distribution State: <span id="monitoring-overall-drift" class="badge status-healthy" role="status">NO_DRIFT</span></h3>
+            <p id="monitoring-drift-summary">Statistical comparison between reference distribution and current production inference window.</p>
+          </div>
+          <div>
+            <span class="text-muted">Evaluated at: <span id="monitoring-drift-timestamp">--</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Numerical Features KS and PSI Table -->
+      <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+          <h3>Numerical Feature Drift (Two-Sample KS-Test &amp; PSI)</h3>
+          <span class="card-hint">KS Significance &alpha; = 0.05 | PSI Threshold = 0.20</span>
+        </div>
+        <div class="table-responsive">
+          <table id="table-numerical-drift" class="data-table" aria-label="Numerical Feature Drift Table">
+            <thead>
+              <tr>
+                <th scope="col">Feature Name</th>
+                <th scope="col">KS Statistic (D)</th>
+                <th scope="col">KS p-value</th>
+                <th scope="col">KS Drift</th>
+                <th scope="col">PSI Value</th>
+                <th scope="col">PSI Drift</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="7" class="text-center text-muted">No drift data loaded. Click "Run Drift Evaluation" to inspect.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Categorical Features PSI Table -->
+      <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+          <h3>Categorical Feature Drift (PSI &amp; Chi-Square)</h3>
+          <span class="card-hint">PSI Threshold = 0.20</span>
+        </div>
+        <div class="table-responsive">
+          <table id="table-categorical-drift" class="data-table" aria-label="Categorical Feature Drift Table">
+            <thead>
+              <tr>
+                <th scope="col">Feature Name</th>
+                <th scope="col">PSI Value</th>
+                <th scope="col">Chi-Square Statistic</th>
+                <th scope="col">Chi-Square p-value</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="5" class="text-center text-muted">No categorical drift data loaded.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ML & DL Anomaly Detection Monitors -->
+      <div class="grid grid-2" style="margin-top: 1.5rem;">
+        <!-- Isolation Forest Classical ML Monitor -->
+        <div class="card" id="card-isolation-forest">
+          <div class="card-header">
+            <h3>Classical ML Anomaly Detector (EXP-01)</h3>
+            <span class="badge badge-info">Isolation Forest</span>
+          </div>
+          <p class="card-hint">Unsupervised multivariate anomaly scoring on incoming prediction features.</p>
+          <div class="kpi-value" style="margin: 1rem 0;">
+            <span id="iforest-status-badge" class="badge status-healthy" role="status">NORMAL</span>
+          </div>
+          <ul class="meta-list">
+            <li><strong>Model Name:</strong> IsolationForestDetector</li>
+            <li><strong>Contamination Factor:</strong> 0.05 (5%)</li>
+            <li><strong>MLflow Experiment:</strong> <code>classical-ml-monitor</code></li>
+          </ul>
+        </div>
+
+        <!-- LSTM Deep Learning Sequence Monitor -->
+        <div class="card" id="card-lstm-sequence">
+          <div class="card-header">
+            <h3>Deep Learning Temporal Shift (EXP-02)</h3>
+            <span class="badge badge-info">PyTorch LSTM</span>
+          </div>
+          <p class="card-hint">Temporal sequence reconstruction error over rolling windows.</p>
+          <div class="kpi-value" style="margin: 1rem 0;">
+            <span id="lstm-status-badge" class="badge status-healthy" role="status">NORMAL</span>
+          </div>
+          <ul class="meta-list">
+            <li><strong>Window Length (W):</strong> 10 consecutive steps</li>
+            <li><strong>MSE Threshold:</strong> 0.15</li>
+            <li><strong>MLflow Experiment:</strong> <code>dl-sequence-monitor</code></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 3: ALERTS MANAGEMENT                                         -->
+    <!-- ===================================================================== -->
+    <section id="section-alerts" role="tabpanel" aria-labelledby="tab-alerts" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <h2>Multi-Metric Threshold Alerts &amp; Deduplication</h2>
+          <span class="section-desc">Real-time alert lifecycle management with deterministic fingerprint deduplication.</span>
+        </div>
+      </div>
+
+      <!-- Alert Metrics Summary -->
+      <div class="grid grid-4">
+        <div class="card kpi-card">
+          <div class="kpi-label">Active Alerts</div>
+          <div class="kpi-value" id="alerts-count-active">0</div>
+        </div>
+        <div class="card kpi-card">
+          <div class="kpi-label">High / Critical</div>
+          <div class="kpi-value text-danger" id="alerts-count-high">0</div>
+        </div>
+        <div class="card kpi-card">
+          <div class="kpi-label">Medium Severity</div>
+          <div class="kpi-value text-warning" id="alerts-count-medium">0</div>
+        </div>
+        <div class="card kpi-card">
+          <div class="kpi-label">Low Severity</div>
+          <div class="kpi-value text-info" id="alerts-count-low">0</div>
+        </div>
+      </div>
+
+      <!-- Active Alerts Table -->
+      <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+          <h3>Active System Alerts</h3>
+          <span class="card-hint">Actions require ML_Engineer or Administrator role</span>
+        </div>
+        <div class="table-responsive">
+          <table id="table-alerts" class="data-table" aria-label="System Alerts Table">
+            <thead>
+              <tr>
+                <th scope="col">Alert ID</th>
+                <th scope="col">Metric / Feature</th>
+                <th scope="col">Severity</th>
+                <th scope="col">Observed / Threshold</th>
+                <th scope="col">Dedup Count</th>
+                <th scope="col">Status</th>
+                <th scope="col">Created At</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-alerts">
+              <tr><td colspan="8" class="text-center text-muted">No active alerts. System operating within nominal thresholds.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 4: CANDIDATE GOVERNANCE                                      -->
+    <!-- ===================================================================== -->
+    <section id="section-candidates" role="tabpanel" aria-labelledby="tab-candidates" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <h2>Model Candidate Governance &amp; Dual-Gate Approval Console</h2>
+          <span class="section-desc">Automated 4-gate validation, human-in-the-loop promotion decision, and QML firewall.</span>
+        </div>
+      </div>
+
+      <!-- QML Architectural Firewall Notice -->
+      <div class="firewall-banner" role="alert">
+        <div class="firewall-badge">ARCHITECTURAL FIREWALL ACTIVE</div>
+        <div>
+          <strong>Strict Quantum Isolation (TC-19):</strong> Experimental Quantum Machine Learning (QML) models
+          under <code>qml-benchmarks</code> are strictly prohibited from validation and promotion.
+          Any promotion attempt is blocked by the architectural firewall with HTTP 422 Unprocessable Content.
+        </div>
+      </div>
+
+      <!-- Registered Candidates & Scorecards -->
+      <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+          <h3>Retrained Model Candidates &amp; Automated Validation Scorecards</h3>
+          <span class="card-hint">Dual-Gate Promotion: Automated Gate Evaluation + Human Authorization</span>
+        </div>
+        <div class="table-responsive">
+          <table id="table-candidates" class="data-table" aria-label="Model Candidates Table">
+            <thead>
+              <tr>
+                <th scope="col">Candidate ID</th>
+                <th scope="col">Model Version</th>
+                <th scope="col">Trigger Reason</th>
+                <th scope="col">Status</th>
+                <th scope="col">Gate 1: Artifact</th>
+                <th scope="col">Gate 2: Schema</th>
+                <th scope="col">Gate 3: Regress.</th>
+                <th scope="col">Gate 4: Latency</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-candidates">
+              <tr><td colspan="9" class="text-center text-muted">Loading candidate registry...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 5: CANARY & ROLLBACK                                         -->
+    <!-- ===================================================================== -->
+    <section id="section-rollback" role="tabpanel" aria-labelledby="tab-rollback" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <h2>Post-Promotion Canary Health &amp; Automated Rollback</h2>
+          <span class="section-desc">Observation guard window (300s), health metrics evaluation, and rollback orchestration.</span>
+        </div>
+        <div>
+          <button type="button" id="btn-evaluate-canary" class="btn btn-secondary">Evaluate Health Guard</button>
+        </div>
+      </div>
+
+      <!-- Canary Guard Dashboard Grid -->
+      <div class="grid grid-3">
+        <div class="card kpi-card">
+          <div class="kpi-label">Canary Health Guard</div>
+          <div class="kpi-value">
+            <span id="canary-health-badge" class="badge status-healthy" role="status">HEALTHY</span>
+          </div>
+          <div class="kpi-subtext">Active Model: <span id="canary-active-model">baseline-v1</span></div>
+        </div>
+
+        <div class="card kpi-card">
+          <div class="kpi-label">Canary Window Countdown</div>
+          <div class="kpi-value" id="canary-remaining-time">0s</div>
+          <div class="kpi-subtext" id="canary-active-state">Canary status: INACTIVE</div>
+        </div>
+
+        <div class="card kpi-card">
+          <div class="kpi-label">Recommended Action</div>
+          <div class="kpi-value" id="canary-recommended-action">NONE</div>
+          <div class="kpi-subtext">Automated rollback triggers on UNHEALTHY</div>
+        </div>
+      </div>
+
+      <div class="grid grid-2" style="margin-top: 1.5rem;">
+        <div class="card">
+          <div class="card-header">
+            <h3>Canary Error Rate</h3>
+            <span class="badge badge-warning">Threshold &le; 10%</span>
+          </div>
+          <div class="stat-highlight" id="canary-error-rate">0.00%</div>
+          <p class="card-hint">Rollback triggered if error rate exceeds 10% during post-promotion window.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Canary Latency (p95)</h3>
+            <span class="badge badge-warning">SLA &le; 500 ms</span>
+          </div>
+          <div class="stat-highlight" id="canary-latency-p95">0.00 ms</div>
+          <p class="card-hint">Rollback triggered if p95 latency exceeds 500 ms SLA boundary.</p>
+        </div>
+      </div>
+
+      <!-- Manual Rollback Emergency Console -->
+      <div class="card danger-card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+          <h3>Emergency Manual Model Rollback</h3>
+          <span class="badge badge-danger">Restricted Action</span>
+        </div>
+        <p>
+          Manually trigger rollback of the active champion model back to the stable fallback model (<code>baseline-v1</code>).
+          Demotes the champion, restores fallback MLflow alias, and hot-reloads the model with zero downtime.
+        </p>
+        <div class="rollback-control-group">
+          <label for="manual-rollback-reason" class="sr-only">Rollback Reason</label>
+          <input type="text" id="manual-rollback-reason" class="input-text" placeholder="Mandatory operator rollback reason..." value="Manual operator rollback via UI console" />
+          <button type="button" id="btn-trigger-rollback" class="btn btn-danger">Trigger Manual Rollback</button>
+        </div>
+      </div>
+
+      <!-- Historical Rollbacks Table -->
+      <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+          <h3>Rollback Execution History</h3>
+          <span class="card-hint">Immutable log of automated and manual rollbacks</span>
+        </div>
+        <div class="table-responsive">
+          <table id="table-rollbacks" class="data-table" aria-label="Rollback History Table">
+            <thead>
+              <tr>
+                <th scope="col">Rollback ID</th>
+                <th scope="col">Trigger Type</th>
+                <th scope="col">Source Version</th>
+                <th scope="col">Restored Version</th>
+                <th scope="col">Reason</th>
+                <th scope="col">Status</th>
+                <th scope="col">Executed At</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-rollbacks">
+              <tr><td colspan="7" class="text-center text-muted">No historical rollbacks recorded.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 6: AUDIT TRAIL                                               -->
+    <!-- ===================================================================== -->
+    <section id="section-audit" role="tabpanel" aria-labelledby="tab-audit" class="tab-panel">
+      <div class="section-header">
+        <div>
+          <h2>Tamper-Evident Cryptographic Audit Trail</h2>
+          <span class="section-desc">SHA-256 hash-chained immutable audit log of operational and governance actions.</span>
+        </div>
+        <div>
+          <button type="button" id="btn-verify-audit" class="btn btn-primary" title="Requires Administrator role">
+            Verify Hash Chain Integrity
+          </button>
+        </div>
+      </div>
+
+      <!-- Integrity Verification Card -->
+      <div class="card banner-card">
+        <div class="banner-content">
+          <div>
+            <h3>Chain Integrity: <span id="audit-integrity-badge" class="badge status-healthy" role="status">CHAIN_INTACT</span></h3>
+            <p id="audit-integrity-details">All cryptographic hashes chained from genesis record. Zero tamper anomalies detected.</p>
+          </div>
+          <div>
+            <ul class="meta-list">
+              <li><strong>Inspected Records:</strong> <span id="audit-inspected-count">0</span></li>
+              <li><strong>Verified Records:</strong> <span id="audit-verified-count">0</span></li>
+              <li><strong>Integrity Issues:</strong> <span id="audit-issues-count">0</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audit Events Table -->
+      <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+          <h3>Recent System Audit Events</h3>
+          <span class="card-hint">Showing latest operations (Actor, Role, Action, SHA-256 Record Hash)</span>
+        </div>
+        <div class="table-responsive">
+          <table id="table-audit" class="data-table" aria-label="Audit Events Table">
+            <thead>
+              <tr>
+                <th scope="col">Timestamp</th>
+                <th scope="col">Actor</th>
+                <th scope="col">Role</th>
+                <th scope="col">Action</th>
+                <th scope="col">Resource</th>
+                <th scope="col">Outcome</th>
+                <th scope="col">SHA-256 Record Hash</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-audit">
+              <tr><td colspan="7" class="text-center text-muted">Loading audit entries...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ======================================================================= -->
+  <!-- MODAL DIALOGS & ACCESSIBILITY REGIONS                                   -->
+  <!-- ======================================================================= -->
+
+  <!-- Modal 1: Candidate Approval / Rejection Decision -->
+  <div id="modal-candidate-decision" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-decision-title" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-decision-title">Candidate Decision Authorization</h3>
+        <button type="button" class="modal-close" id="btn-close-decision-modal" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Candidate ID: <strong id="modal-candidate-id">cand-...</strong></p>
+        <p>Action: <span id="modal-decision-type-badge" class="badge">APPROVE</span></p>
+        <div id="modal-decision-warning" class="modal-warning">
+          Promoting this candidate will replace the active production champion and initiate a 5-minute canary observation window.
+        </div>
+        <div class="form-group" style="margin-top: 1rem;">
+          <label for="modal-decision-comment">Operator Decision Comment (Required):</label>
+          <textarea id="modal-decision-comment" class="input-textarea" rows="3" placeholder="State operational justification for this decision..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btn-cancel-decision" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="btn-confirm-decision" class="btn btn-primary">Authorize Decision</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Confirm Manual Rollback -->
+  <div id="modal-rollback" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-rollback-title" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-rollback-title">Confirm Emergency Rollback</h3>
+        <button type="button" class="modal-close" id="btn-close-rollback-modal" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-danger">
+          <strong>WARNING:</strong> This action will immediately demote the active production champion
+          and restore the stable fallback model (<code>baseline-v1</code>).
+        </p>
+        <p>Current Champion: <strong id="modal-rollback-source">baseline-v1</strong></p>
+        <p>Target Fallback: <strong id="modal-rollback-target">baseline-v1</strong></p>
+        <p>Justification: <em id="modal-rollback-reason-text">Manual operator rollback via UI console</em></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btn-cancel-rollback" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="btn-confirm-rollback" class="btn btn-danger">Confirm Immediate Rollback</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accessible Toast Container for Dynamic Alerts / Messages -->
+  <div id="toast-container" class="toast-container" role="status" aria-live="polite"></div>
+
+  <footer class="app-footer" role="contentinfo">
+    <div>Self-Monitoring MLOps System &bull; Academic Software Engineering Mini-Project</div>
+    <div>Compliance: FR-13, NFR-08, TC-17 &bull; WCAG 2.1 AA Accessible</div>
+  </footer>
+
+  <script src="/static/dashboard.js"></script>
+</body>
+</html>
