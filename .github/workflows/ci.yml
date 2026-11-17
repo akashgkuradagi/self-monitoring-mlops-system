@@ -54,6 +54,7 @@ jobs:
             dvc pull || echo "DVC remote pull skipped or unavailable."
           fi
           python scripts/prepare_datasets.py
+          python scripts/train_baseline.py
 
       - name: Run Test Suite with Coverage
         run: |
