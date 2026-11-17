@@ -1,0 +1,25 @@
+{
+  "model_version": "iso-forest-v1",
+  "algorithm": "IsolationForest",
+  "mlflow_run_id": "976b2c72cdd2413db7c7e0019a1b4edd",
+  "experiment_name": "classical-ml-monitor",
+  "training_summary": {
+    "model_version": "iso-forest-v1",
+    "algorithm": "IsolationForest",
+    "n_estimators": 100,
+    "contamination": 0.05,
+    "random_state": 42,
+    "offset_threshold": -0.5534,
+    "train_sample_count": 3500,
+    "baseline_anomaly_ratio": 0.05,
+    "baseline_mean_decision_score": 0.0786
+  },
+  "validation_metrics": {
+    "total_samples": 750,
+    "anomaly_count": 39,
+    "anomaly_ratio": 0.052,
+    "mean_decision_score": 0.078,
+    "mean_anomaly_score": 0.422,
+    "is_anomaly_detected": false
+  }
+}

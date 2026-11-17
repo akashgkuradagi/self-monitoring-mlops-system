@@ -1,0 +1,21 @@
+{
+  "model_version": "baseline-v1",
+  "status": "evaluated",
+  "accuracy": 0.6827,
+  "precision": 0.4489,
+  "recall": 0.5857,
+  "f1": 0.5083,
+  "roc_auc": 0.7194,
+  "confusion_matrix": [
+    [
+      389,
+      151
+    ],
+    [
+      87,
+      123
+    ]
+  ],
+  "sample_count": 750,
+  "note": "Evaluated on validation dataset with true labels."
+}
