@@ -1,0 +1,75 @@
+# Multi-Container Docker Compose Configuration for Self-Monitoring MLOps System (PKG-01)
+# Services:
+#   1. web: FastAPI REST API service running on port 8000
+#   2. mlflow: Dedicated MLflow Model Registry and Tracking Server on port 5000
+
+services:
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mlops-mlflow
+    command:
+      - mlflow
+      - server
+      - --backend-store-uri
+      - sqlite:////data/mlflow.db
+      - --default-artifact-root
+      - /data/artifacts
+      - --host
+      - 0.0.0.0
+      - --port
+      - "5000"
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlops_data:/data
+    networks:
+      - mlops_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mlops-api
+    environment:
+      - ENVIRONMENT=production
+      - PORT=8000
+      - AUDIT_DB_PATH=/data/telemetry.db
+      - ALERTS_DB_PATH=/data/telemetry.db
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MODEL_DIR=/app/models
+      - DRIFT_REFERENCE_PATH=/app/data/reference/reference.csv
+    ports:
+      - "8000:8000"
+    volumes:
+      - mlops_data:/data
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    networks:
+      - mlops_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  mlops_data:
+    name: mlops_data
+    driver: local
+
+networks:
+  mlops_net:
+    name: mlops_net
+    driver: bridge

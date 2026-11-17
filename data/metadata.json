@@ -1,0 +1,58 @@
+{
+  "dataset_name": "Credit Risk Tabular Monitoring Dataset",
+  "version": "1.0.0",
+  "created_at": "2026-11-17T09:53:54.774371+00:00",
+  "license": "CC-BY-4.0 (Synthetic for Educational Evaluation)",
+  "features": {
+    "numerical": [
+      "age",
+      "income",
+      "loan_amount",
+      "credit_score",
+      "debt_to_income",
+      "employment_length"
+    ],
+    "categorical": [
+      "loan_intent",
+      "home_ownership",
+      "previous_default"
+    ],
+    "target": "loan_status"
+  },
+  "partitions": {
+    "train": {
+      "rows": 3500,
+      "sha256": "fdc4af39caee818a619941ad4a3a6719c1abcde591e9ed6d85bd72643d4c8c1d"
+    },
+    "validation": {
+      "rows": 750,
+      "sha256": "dadf7031637c15628b7404432f032f97cd563b15eb0349c32d55db24ade38381"
+    },
+    "reference": {
+      "rows": 750,
+      "sha256": "adb1012c5d6cb6b01cfab2a1fdd89d94c69572de3d3c72e140bc3db6bb9c0363"
+    }
+  },
+  "fixtures": {
+    "stable_fixture.csv": {
+      "rows": 1000,
+      "sha256": "1dc6af3a93efc3d02315732b28a6461e62f6d181e4ac9a3fe16f449f1dd88aeb"
+    },
+    "numerical_drift_fixture.csv": {
+      "rows": 1000,
+      "sha256": "b2988cb6e6c7c6dd443c3c9912ddd1a5971e9a84281195e222c86368f93967e9"
+    },
+    "categorical_drift_fixture.csv": {
+      "rows": 1000,
+      "sha256": "413e091648130f57c3ae1b0c4d99d5ca2336919c291425c85b39527e148bd295"
+    },
+    "sudden_drift_fixture.csv": {
+      "rows": 1000,
+      "sha256": "7b870b856c1490d128e5e7f1be39b830ee48e735f3e8cfcf3dab01240dcd9efa"
+    },
+    "gradual_drift_fixture.csv": {
+      "rows": 1000,
+      "sha256": "c0ced3fdc7e367246297bcf42fb1097f0fe143e08b8608ffe86168bd55e8a62e"
+    }
+  }
+}

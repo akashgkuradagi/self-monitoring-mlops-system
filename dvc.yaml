@@ -1,0 +1,12 @@
+stages:
+  prepare_data:
+    cmd: python scripts/prepare_datasets.py
+    deps:
+      - scripts/prepare_datasets.py
+      - app/data/generator.py
+      - app/data/schema.py
+      - app/data/validation.py
+    outs:
+      - data/reference
+      - data/fixtures
+      - data/metadata.json

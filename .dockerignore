@@ -1,0 +1,48 @@
+# Git and IDE artifacts
+.git
+.gitignore
+.gitattributes
+.vscode
+.idea
+
+# Python virtual environment and bytecode
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Testing and coverage artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+nosetests.xml
+
+# Local runtime state and databases
+telemetry.db
+telemetry.db-journal
+mlflow.db
+mlflow.db-journal
+mlruns/
+*.sqlite
+*.sqlite3
+
+# Secrets and environment files
+.env
+.env.local
+.env.*
+!.env.example
+
+# DVC local caches and temporaries
+.dvc/cache/
+.dvc/tmp/
+.dvc/config.local
+
+# Documentation and CI definitions not needed inside runtime container
+docs/
+.github/

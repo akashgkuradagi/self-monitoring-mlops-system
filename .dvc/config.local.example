@@ -1,0 +1,23 @@
+# DVC Local Configuration Template (.dvc/config.local.example)
+#
+# INSTRUCTIONS:
+# To configure a remote storage target for shared team synchronization:
+#
+# 1. Local Filesystem Remote (Default for development & testing - no credentials needed):
+#      dvc remote add -d local_storage /tmp/dvc_remote_storage
+#
+# 2. AWS S3 Remote:
+#      dvc remote add -d s3_remote s3://my-mlops-bucket/dvc-store
+#      # In CI/CD or local env, set: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+#
+# 3. Google Cloud Storage (GCS) Remote:
+#      dvc remote add -d gcs_remote gs://my-mlops-bucket/dvc-store
+#      # In CI/CD or local env, set: GOOGLE_APPLICATION_CREDENTIALS
+#
+# Standard DVC Operations:
+#   - Track dataset changes:     dvc add data/reference
+#   - Push data to remote:       dvc push
+#   - Fetch data from remote:    dvc pull
+#   - Reproduce pipeline:        dvc repro
+#
+# SECURITY: Never commit credentials or .dvc/config.local into Git.

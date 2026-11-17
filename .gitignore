@@ -218,3 +218,21 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# SQLite / Local Databases
+*.db
+*.sqlite
+*.sqlite3
+telemetry.db
+
+# MLflow local runs and artifacts
+mlruns/
+mlflow_artifacts/
+mlflow.db
+
+# Serialized Model Weights
+models/*.joblib
+models/*.pt
+
+# Generated Test Run Reports
+reports/*.json
